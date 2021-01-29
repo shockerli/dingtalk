@@ -25,8 +25,20 @@ func NewRobotCustom() *RobotCustom {
 	}
 }
 
+// SetAccessToken 设置Token
+func (r *RobotCustom) SetAccessToken(t string) *RobotCustom {
+	r.accessToken = t
+	return r
+}
+
+// SetSecret 设置Secret
+func (r *RobotCustom) SetSecret(s string) *RobotCustom {
+	r.secret = s
+	return r
+}
+
 // SendText 发送Text消息
-func (r RobotCustom) SendText(content string, opts ...RobotOption) error {
+func (r *RobotCustom) SendText(content string, opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeText,
 		Text:    robotText{Content: content},
@@ -38,7 +50,7 @@ func (r RobotCustom) SendText(content string, opts ...RobotOption) error {
 }
 
 // SendLink 发送Link消息
-func (r RobotCustom) SendLink(title, text, msgURL, picURL string, opts ...RobotOption) error {
+func (r *RobotCustom) SendLink(title, text, msgURL, picURL string, opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeLink,
 		Link: robotLink{
@@ -55,7 +67,7 @@ func (r RobotCustom) SendLink(title, text, msgURL, picURL string, opts ...RobotO
 }
 
 // SendMarkdown 发送Markdown消息
-func (r RobotCustom) SendMarkdown(title, text string, opts ...RobotOption) error {
+func (r *RobotCustom) SendMarkdown(title, text string, opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeMarkdown,
 		Markdown: robotMarkdown{
@@ -70,7 +82,7 @@ func (r RobotCustom) SendMarkdown(title, text string, opts ...RobotOption) error
 }
 
 // SendActionCard 发送ActionCard消息
-func (r RobotCustom) SendActionCard(title, text string, opts ...RobotOption) error {
+func (r *RobotCustom) SendActionCard(title, text string, opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeActionCard,
 		ActionCard: robotActionCard{
@@ -87,7 +99,7 @@ func (r RobotCustom) SendActionCard(title, text string, opts ...RobotOption) err
 }
 
 // SendFeedCard 发送FeedCard消息
-func (r RobotCustom) SendFeedCard(opts ...RobotOption) error {
+func (r *RobotCustom) SendFeedCard(opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeFeedCard,
 		FeedCard: robotFeedCard{
@@ -101,7 +113,7 @@ func (r RobotCustom) SendFeedCard(opts ...RobotOption) error {
 }
 
 // 发送消息
-func (r RobotCustom) send(msg interface{}) error {
+func (r *RobotCustom) send(msg interface{}) error {
 	v, err := json.Marshal(msg)
 	if err != nil {
 		return err
@@ -115,6 +127,7 @@ func (r RobotCustom) send(msg interface{}) error {
 		value.Set("sign", r.sign(t, r.secret))
 	}
 
+	println(fmt.Sprintf("%#v", r.apiURI+"?"+value.Encode()))
 	data, err := request(r.apiURI+"?"+value.Encode(), v)
 	if err != nil {
 		return err
@@ -136,7 +149,7 @@ func (r RobotCustom) send(msg interface{}) error {
 }
 
 // 签名算法
-func (RobotCustom) sign(ts int64, secret string) string {
+func (*RobotCustom) sign(ts int64, secret string) string {
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write([]byte(fmt.Sprintf("%d\n%s", ts, secret)))
 	return base64.StdEncoding.EncodeToString(h.Sum(nil))
@@ -224,16 +237,16 @@ type robotFeedCardLink struct {
 type RobotOption func(*robotMsg)
 
 // AtAll 设置是否@所有人
-// [NOTICE] 仅针对Text/Link/Markdown类型有效
-func (r RobotCustom) AtAll() RobotOption {
+// [NOTICE] 仅针对Text/Markdown类型有效
+func (r *RobotCustom) AtAll() RobotOption {
 	return func(msg *robotMsg) {
 		msg.At.IsAtAll = true
 	}
 }
 
 // AtMobiles 设置@人的手机号
-// [NOTICE] 仅针对Text/Link/Markdown类型有效
-func (r RobotCustom) AtMobiles(m ...string) RobotOption {
+// [NOTICE] 仅针对Text/Markdown类型有效
+func (r *RobotCustom) AtMobiles(m ...string) RobotOption {
 	return func(msg *robotMsg) {
 		msg.At.AtMobiles = m
 	}
@@ -241,7 +254,7 @@ func (r RobotCustom) AtMobiles(m ...string) RobotOption {
 
 // HideAvatar 隐藏缩略图
 // 仅针对ActionCard类型
-func (r RobotCustom) HideAvatar(v string) RobotOption {
+func (r *RobotCustom) HideAvatar(v string) RobotOption {
 	return func(msg *robotMsg) {
 		msg.ActionCard.HideAvatar = v
 	}
@@ -249,7 +262,7 @@ func (r RobotCustom) HideAvatar(v string) RobotOption {
 
 // BtnOrientation 按钮排列(0: 竖直排列, 1: 横向排列)
 // 仅针对ActionCard类型
-func (r RobotCustom) BtnOrientation(v string) RobotOption {
+func (r *RobotCustom) BtnOrientation(v string) RobotOption {
 	return func(msg *robotMsg) {
 		msg.ActionCard.BtnOrientation = v
 	}
@@ -257,7 +270,7 @@ func (r RobotCustom) BtnOrientation(v string) RobotOption {
 
 // SingleCard 整体调整配置
 // 仅针对ActionCard类型
-func (r RobotCustom) SingleCard(title, url string) RobotOption {
+func (r *RobotCustom) SingleCard(title, url string) RobotOption {
 	return func(msg *robotMsg) {
 		msg.ActionCard.SingleTitle = title
 		msg.ActionCard.SingleURL = url
@@ -266,7 +279,7 @@ func (r RobotCustom) SingleCard(title, url string) RobotOption {
 
 // MultiCard 添加一个MultiCard项
 // 仅针对ActionCard类型
-func (r RobotCustom) MultiCard(title, url string) RobotOption {
+func (r *RobotCustom) MultiCard(title, url string) RobotOption {
 	return func(msg *robotMsg) {
 		msg.ActionCard.Btns = append(msg.ActionCard.Btns, robotActionCardBtn{
 			Title:     title,
@@ -277,7 +290,7 @@ func (r RobotCustom) MultiCard(title, url string) RobotOption {
 
 // FeedCard 添加一个FeedCard项
 // 仅针对FeedCard类型
-func (r RobotCustom) FeedCard(title, msgURL, picURL string) RobotOption {
+func (r *RobotCustom) FeedCard(title, msgURL, picURL string) RobotOption {
 	return func(msg *robotMsg) {
 		msg.FeedCard.Links = append(msg.FeedCard.Links, robotFeedCardLink{
 			Title:      title,

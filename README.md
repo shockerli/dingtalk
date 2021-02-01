@@ -58,5 +58,5 @@ robot.SendLink("TEST: Link", "link content", "https://github.com/shockerli", "ht
 
 ## 测试
 
-1. 打开 `robot_test.go` 文件，修改 `your_access_token` 和 `your_secret`；
+1. 打开 `robot_test.go` 文件，修改 `your_robot_webhook` 和 `your_secret`；
 2. 运行单元测试 `go test -v *_test.go`；

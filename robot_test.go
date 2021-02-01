@@ -1,6 +1,7 @@
 package dingtalk_test
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/shockerli/dingtalk"
@@ -10,7 +11,7 @@ var robot *dingtalk.RobotCustom
 
 func init() {
 	robot = dingtalk.NewRobotCustom()
-	robot.SetAccessToken("your_access_token")
+	robot.SetWebhook("your_robot_webhook")
 	robot.SetSecret("your_secret")
 }
 
@@ -100,5 +101,18 @@ func TestRobotCustom_SendActionCard(t *testing.T) {
 		robot.HideAvatar("1"),
 	); err != nil {
 		t.Errorf("SendActionCard() && HideAvatar() error = %v", err)
+	}
+}
+
+func TestRobotCustom_Outgoing(t *testing.T) {
+	var callbackBody = `{"conversationId":"ciddz7nmHDaX/7Niz+Gb5VVrw==","sceneGroupCode":"project","atUsers":[{"dingtalkId":"$:LWCP_v1:$0sIVIuw1HvQQ5gRAtFWzypo0+T1TgPOP"},{"dingtalkId":"$:LWCP_v1:$I3cyfTzrws4nCbY289cXbKCVcdd1wize"}],"chatbotUserId":"$:LWCP_v1:$I3cyfTzrws4nCbY289cXbKCVcdd1wize","msgId":"msgaKcioIqERkELm2T8TlE9CA==","senderNick":"Jioby","isAdmin":false,"sessionWebhookExpiredTime":1612178396066,"createAt":1612172996026,"conversationType":"2","senderId":"$:LWCP_v1:$deZJcSfMzexC2YK+oLkk1g==","conversationTitle":"xxx","isInAtList":true,"sessionWebhook":"https://oapi.dingtalk.com/robot/sendBySession?session=eb18e18e8669b0a3cd7dff1388fe5e6a","text":{"content":"  哈哈哈"},"msgtype":"text"}`
+
+	og, err := robot.ParseOutgoing(bytes.NewBufferString(callbackBody))
+	if err != nil {
+		t.Errorf("ParseOutgoing() error = %v", err)
+	}
+	err = robot.SendText("callback", robot.WithOutgoing(og))
+	if err != nil {
+		t.Errorf("WithOutgoing() error= %v", err)
 	}
 }

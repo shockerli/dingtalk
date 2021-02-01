@@ -6,6 +6,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/url"
 	"time"
 )
@@ -13,38 +15,29 @@ import (
 // RobotCustom 群机器人-自定义
 // @doc https://developers.dingtalk.com/document/app/custom-robot-access
 type RobotCustom struct {
-	api         string
-	accessToken string
-	secret      string
+	webhook string // 例: https://oapi.dingtalk.com/robot/send?access_token=xxx
+	secret  string // 例: SEC8a9fc6f36f447d7c497f8c8e08accde4c49b4b5a366fa3903f47e250d6746979
 }
 
 // NewRobotCustom 实例化
 func NewRobotCustom() *RobotCustom {
-	return &RobotCustom{
-		api: "https://oapi.dingtalk.com/robot/send",
-	}
+	return &RobotCustom{}
 }
 
-// SetAPI 设置API地址¬
-func (r *RobotCustom) SetAPI(t string) *RobotCustom {
-	r.api = t
-	return r
-}
-
-// SetAccessToken 设置Token
-func (r *RobotCustom) SetAccessToken(t string) *RobotCustom {
-	r.accessToken = t
-	return r
+// SetWebhook 设置Token
+func (rc *RobotCustom) SetWebhook(t string) *RobotCustom {
+	rc.webhook = t
+	return rc
 }
 
 // SetSecret 设置Secret
-func (r *RobotCustom) SetSecret(s string) *RobotCustom {
-	r.secret = s
-	return r
+func (rc *RobotCustom) SetSecret(s string) *RobotCustom {
+	rc.secret = s
+	return rc
 }
 
 // SendText 发送Text消息
-func (r *RobotCustom) SendText(content string, opts ...RobotOption) error {
+func (rc *RobotCustom) SendText(content string, opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeText,
 		Text:    &robotText{Content: content},
@@ -52,11 +45,11 @@ func (r *RobotCustom) SendText(content string, opts ...RobotOption) error {
 	for _, opt := range opts {
 		opt(msg)
 	}
-	return r.send(msg)
+	return rc.send(msg)
 }
 
 // SendLink 发送Link消息
-func (r *RobotCustom) SendLink(title, text, msgURL, picURL string, opts ...RobotOption) error {
+func (rc *RobotCustom) SendLink(title, text, msgURL, picURL string, opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeLink,
 		Link: &robotLink{
@@ -69,11 +62,11 @@ func (r *RobotCustom) SendLink(title, text, msgURL, picURL string, opts ...Robot
 	for _, opt := range opts {
 		opt(msg)
 	}
-	return r.send(msg)
+	return rc.send(msg)
 }
 
 // SendMarkdown 发送Markdown消息
-func (r *RobotCustom) SendMarkdown(title, text string, opts ...RobotOption) error {
+func (rc *RobotCustom) SendMarkdown(title, text string, opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeMarkdown,
 		Markdown: &robotMarkdown{
@@ -84,11 +77,11 @@ func (r *RobotCustom) SendMarkdown(title, text string, opts ...RobotOption) erro
 	for _, opt := range opts {
 		opt(msg)
 	}
-	return r.send(msg)
+	return rc.send(msg)
 }
 
 // SendActionCard 发送ActionCard消息
-func (r *RobotCustom) SendActionCard(title, text string, opts ...RobotOption) error {
+func (rc *RobotCustom) SendActionCard(title, text string, opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeActionCard,
 		ActionCard: &robotActionCard{
@@ -101,11 +94,11 @@ func (r *RobotCustom) SendActionCard(title, text string, opts ...RobotOption) er
 	for _, opt := range opts {
 		opt(msg)
 	}
-	return r.send(msg)
+	return rc.send(msg)
 }
 
 // SendFeedCard 发送FeedCard消息
-func (r *RobotCustom) SendFeedCard(opts ...RobotOption) error {
+func (rc *RobotCustom) SendFeedCard(opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeFeedCard,
 		FeedCard: &robotFeedCard{
@@ -115,25 +108,28 @@ func (r *RobotCustom) SendFeedCard(opts ...RobotOption) error {
 	for _, opt := range opts {
 		opt(msg)
 	}
-	return r.send(msg)
+	return rc.send(msg)
 }
 
 // 发送消息
-func (r *RobotCustom) send(msg interface{}) error {
+func (rc *RobotCustom) send(msg *robotMsg) error {
 	v, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
 
+	var api = rc.webhook
 	var value = make(url.Values)
-	value.Set("access_token", r.accessToken)
-	if r.secret != "" {
+	if msg.outgoing.SessionWebhook != "" {
+		api = msg.outgoing.SessionWebhook
+	} else if rc.secret != "" {
 		t := time.Now().UnixNano() / 1e6
 		value.Set("timestamp", fmt.Sprintf("%d", t))
-		value.Set("sign", r.sign(t, r.secret))
+		value.Set("sign", rc.sign(t, rc.secret))
+		api = rc.webhook + "&" + value.Encode()
 	}
 
-	data, err := request(r.api+"?"+value.Encode(), v)
+	data, err := request(api, v)
 	if err != nil {
 		return err
 	}
@@ -180,6 +176,7 @@ type robotMsg struct {
 	Markdown   *robotMarkdown   `json:"markdown,omitempty"`
 	ActionCard *robotActionCard `json:"actionCard,omitempty"`
 	FeedCard   *robotFeedCard   `json:"feedCard,omitempty"`
+	outgoing   RobotOutgoing
 }
 
 // 消息@人的设置
@@ -243,7 +240,7 @@ type RobotOption func(*robotMsg)
 
 // AtAll 设置是否@所有人
 // [NOTICE] 仅针对Text/Markdown类型有效
-func (r *RobotCustom) AtAll() RobotOption {
+func (rc *RobotCustom) AtAll() RobotOption {
 	return func(msg *robotMsg) {
 		if msg.MsgType != msgTypeText && msg.MsgType != msgTypeMarkdown {
 			return
@@ -257,7 +254,7 @@ func (r *RobotCustom) AtAll() RobotOption {
 
 // AtMobiles 设置@人的手机号
 // [NOTICE] 仅针对Text/Markdown类型有效
-func (r *RobotCustom) AtMobiles(m ...string) RobotOption {
+func (rc *RobotCustom) AtMobiles(m ...string) RobotOption {
 	return func(msg *robotMsg) {
 		if msg.MsgType != msgTypeText && msg.MsgType != msgTypeMarkdown {
 			return
@@ -271,7 +268,7 @@ func (r *RobotCustom) AtMobiles(m ...string) RobotOption {
 
 // HideAvatar 隐藏缩略图
 // 仅针对ActionCard类型
-func (r *RobotCustom) HideAvatar(v string) RobotOption {
+func (rc *RobotCustom) HideAvatar(v string) RobotOption {
 	return func(msg *robotMsg) {
 		if msg.MsgType != msgTypeActionCard {
 			return
@@ -282,7 +279,7 @@ func (r *RobotCustom) HideAvatar(v string) RobotOption {
 
 // BtnOrientation 按钮排列(0: 竖直排列, 1: 横向排列)
 // 仅针对ActionCard类型
-func (r *RobotCustom) BtnOrientation(v string) RobotOption {
+func (rc *RobotCustom) BtnOrientation(v string) RobotOption {
 	return func(msg *robotMsg) {
 		if msg.MsgType != msgTypeActionCard {
 			return
@@ -293,7 +290,7 @@ func (r *RobotCustom) BtnOrientation(v string) RobotOption {
 
 // SingleCard 整体调整配置
 // 仅针对ActionCard类型
-func (r *RobotCustom) SingleCard(title, url string) RobotOption {
+func (rc *RobotCustom) SingleCard(title, url string) RobotOption {
 	return func(msg *robotMsg) {
 		if msg.MsgType != msgTypeActionCard {
 			return
@@ -305,7 +302,7 @@ func (r *RobotCustom) SingleCard(title, url string) RobotOption {
 
 // MultiCard 添加一个MultiCard项
 // 仅针对ActionCard类型
-func (r *RobotCustom) MultiCard(title, url string) RobotOption {
+func (rc *RobotCustom) MultiCard(title, url string) RobotOption {
 	return func(msg *robotMsg) {
 		if msg.MsgType != msgTypeActionCard {
 			return
@@ -319,7 +316,7 @@ func (r *RobotCustom) MultiCard(title, url string) RobotOption {
 
 // FeedCard 添加一个FeedCard项
 // 仅针对FeedCard类型
-func (r *RobotCustom) FeedCard(title, msgURL, picURL string) RobotOption {
+func (rc *RobotCustom) FeedCard(title, msgURL, picURL string) RobotOption {
 	return func(msg *robotMsg) {
 		if msg.MsgType != msgTypeFeedCard {
 			return
@@ -330,4 +327,71 @@ func (r *RobotCustom) FeedCard(title, msgURL, picURL string) RobotOption {
 			PicURL:     picURL,
 		})
 	}
+}
+
+// WithOutgoing 通过Outgoing的临时消息接口发送
+func (rc *RobotCustom) WithOutgoing(og RobotOutgoing) RobotOption {
+	return func(msg *robotMsg) {
+		msg.outgoing = og
+	}
+}
+
+// ParseOutgoing 解析Outgoing消息体
+func (rc *RobotCustom) ParseOutgoing(r io.Reader) (og RobotOutgoing, err error) {
+	buf, err := ioutil.ReadAll(r)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(buf, &og)
+	return
+}
+
+// RobotOutgoing Outgoing回调消息体
+// {
+//    "conversationId": "ciddz7nmHDaX/7Niz+Gb5VVrw==",
+//    "sceneGroupCode": "project",
+//    "atUsers": [
+//        {
+//            "dingtalkId": "$:LWCP_v1:$0sIVIuw1HvQQ5gRAtFWzypo0+T1TgPOP"
+//        },
+//        {
+//            "dingtalkId": "$:LWCP_v1:$I3cyfTzrws4nCbY289cXbKCVcdd1wize"
+//        }
+//    ],
+//    "chatbotUserId": "$:LWCP_v1:$I3cyfTzrws4nCbY289cXbKCVcdd1wize",
+//    "msgId": "msgaKcioIqERkELm2T8TlE9CA==",
+//    "senderNick": "Jioby",
+//    "isAdmin": false,
+//    "sessionWebhookExpiredTime": 1612178396066,
+//    "createAt": 1612172996026,
+//    "conversationType": "2",
+//    "senderId": "$:LWCP_v1:$deZJcSfMzexC2YK+oLkk1g==",
+//    "conversationTitle": "xxx",
+//    "isInAtList": true,
+//    "sessionWebhook": "https://oapi.dingtalk.com/robot/sendBySession?session=eb18e18e8669b0a3cd7dff1388fe5e6a",
+//    "text": {
+//        "content": "  哈哈哈"
+//    },
+//    "msgtype": "text"
+// }
+type RobotOutgoing struct {
+	// 被@人的信息
+	AtUsers []struct {
+		DingTalkID string `json:"dingtalkId"` // 加密的人员ID
+	} `json:"atUsers"`
+	ChatBotUserID             string    `json:"chatbotUserId"`             // 加密的机器人ID
+	ConversationID            string    `json:"conversationId"`            // 加密的会话ID
+	ConversationTitle         string    `json:"conversationTitle"`         // 会话标题(群聊时才有，即群名)
+	ConversationType          string    `json:"conversationType"`          // 1-单聊、2-群聊
+	CreateAt                  int64     `json:"createAt"`                  // 消息的时间戳，单位ms
+	IsAdmin                   bool      `json:"isAdmin"`                   // 是否为管理员发送的消息
+	IsInAtList                bool      `json:"isInAtList"`                //
+	MsgID                     string    `json:"msgId"`                     // 加密的消息ID
+	MsgType                   string    `json:"msgtype"`                   // 消息类型: 目前只支持Text
+	SceneGroupCode            string    `json:"sceneGroupCode"`            // 群组场景类型Code
+	SenderID                  string    `json:"senderId"`                  // 加密的发送者ID
+	SenderNick                string    `json:"senderNick"`                // 发送者昵称
+	SessionWebhook            string    `json:"sessionWebhook"`            // 临时的发送消息接口
+	SessionWebhookExpiredTime int64     `json:"sessionWebhookExpiredTime"` // SessionWebhook可用的有效截止时间
+	Text                      robotText `json:"text"`                      // Text类型的消息体
 }

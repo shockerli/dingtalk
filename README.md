@@ -14,7 +14,7 @@ go get github.com/shockerli/dingtalk
 
 ```go
 var robot = dingtalk.NewRobotCustom()
-robot.SetAccessToken("your_access_token")
+robot.SetWebhook("your_robot_webhook")
 robot.SetSecret("your_secret") // 可选
 ```
 

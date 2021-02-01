@@ -41,7 +41,7 @@ func (r *RobotCustom) SetSecret(s string) *RobotCustom {
 func (r *RobotCustom) SendText(content string, opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeText,
-		Text:    robotText{Content: content},
+		Text:    &robotText{Content: content},
 	}
 	for _, opt := range opts {
 		opt(msg)
@@ -53,7 +53,7 @@ func (r *RobotCustom) SendText(content string, opts ...RobotOption) error {
 func (r *RobotCustom) SendLink(title, text, msgURL, picURL string, opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeLink,
-		Link: robotLink{
+		Link: &robotLink{
 			Title:      title,
 			Text:       text,
 			MessageURL: msgURL,
@@ -70,7 +70,7 @@ func (r *RobotCustom) SendLink(title, text, msgURL, picURL string, opts ...Robot
 func (r *RobotCustom) SendMarkdown(title, text string, opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeMarkdown,
-		Markdown: robotMarkdown{
+		Markdown: &robotMarkdown{
 			Title: title,
 			Text:  text,
 		},
@@ -85,7 +85,7 @@ func (r *RobotCustom) SendMarkdown(title, text string, opts ...RobotOption) erro
 func (r *RobotCustom) SendActionCard(title, text string, opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeActionCard,
-		ActionCard: robotActionCard{
+		ActionCard: &robotActionCard{
 			Title:          title,
 			Text:           text,
 			HideAvatar:     "0", // 默认展示
@@ -102,7 +102,7 @@ func (r *RobotCustom) SendActionCard(title, text string, opts ...RobotOption) er
 func (r *RobotCustom) SendFeedCard(opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeFeedCard,
-		FeedCard: robotFeedCard{
+		FeedCard: &robotFeedCard{
 			Links: []robotFeedCardLink{},
 		},
 	}
@@ -127,7 +127,6 @@ func (r *RobotCustom) send(msg interface{}) error {
 		value.Set("sign", r.sign(t, r.secret))
 	}
 
-	println(fmt.Sprintf("%#v", r.apiURI+"?"+value.Encode()))
 	data, err := request(r.apiURI+"?"+value.Encode(), v)
 	if err != nil {
 		return err
@@ -168,13 +167,13 @@ const (
 
 // 机器人消息结构
 type robotMsg struct {
-	MsgType    string          `json:"msgtype"` // 消息类型
-	At         robotAt         `json:"at,omitempty"`
-	Text       robotText       `json:"text,omitempty"`
-	Link       robotLink       `json:"link"`
-	Markdown   robotMarkdown   `json:"markdown"`
-	ActionCard robotActionCard `json:"actionCard,omitempty"`
-	FeedCard   robotFeedCard   `json:"feedCard,omitempty"`
+	MsgType    string           `json:"msgtype"` // 消息类型
+	At         *robotAt         `json:"at,omitempty"`
+	Text       *robotText       `json:"text,omitempty"`
+	Link       *robotLink       `json:"link,omitempty"`
+	Markdown   *robotMarkdown   `json:"markdown,omitempty"`
+	ActionCard *robotActionCard `json:"actionCard,omitempty"`
+	FeedCard   *robotFeedCard   `json:"feedCard,omitempty"`
 }
 
 // 消息@人的设置

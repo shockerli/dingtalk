@@ -239,6 +239,9 @@ type RobotOption func(*robotMsg)
 // [NOTICE] 仅针对Text/Markdown类型有效
 func (r *RobotCustom) AtAll() RobotOption {
 	return func(msg *robotMsg) {
+		if msg.At == nil {
+			msg.At = &robotAt{}
+		}
 		msg.At.IsAtAll = true
 	}
 }
@@ -247,6 +250,9 @@ func (r *RobotCustom) AtAll() RobotOption {
 // [NOTICE] 仅针对Text/Markdown类型有效
 func (r *RobotCustom) AtMobiles(m ...string) RobotOption {
 	return func(msg *robotMsg) {
+		if msg.At == nil {
+			msg.At = &robotAt{}
+		}
 		msg.At.AtMobiles = m
 	}
 }

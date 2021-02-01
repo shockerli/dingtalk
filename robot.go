@@ -13,7 +13,7 @@ import (
 // RobotCustom 群机器人-自定义
 // @doc https://developers.dingtalk.com/document/app/custom-robot-access
 type RobotCustom struct {
-	apiURI      string
+	api         string
 	accessToken string
 	secret      string
 }
@@ -21,8 +21,14 @@ type RobotCustom struct {
 // NewRobotCustom 实例化
 func NewRobotCustom() *RobotCustom {
 	return &RobotCustom{
-		apiURI: "https://oapi.dingtalk.com/robot/send",
+		api: "https://oapi.dingtalk.com/robot/send",
 	}
+}
+
+// SetAPI 设置API地址¬
+func (r *RobotCustom) SetAPI(t string) *RobotCustom {
+	r.api = t
+	return r
 }
 
 // SetAccessToken 设置Token
@@ -127,7 +133,7 @@ func (r *RobotCustom) send(msg interface{}) error {
 		value.Set("sign", r.sign(t, r.secret))
 	}
 
-	data, err := request(r.apiURI+"?"+value.Encode(), v)
+	data, err := request(r.api+"?"+value.Encode(), v)
 	if err != nil {
 		return err
 	}
@@ -239,6 +245,9 @@ type RobotOption func(*robotMsg)
 // [NOTICE] 仅针对Text/Markdown类型有效
 func (r *RobotCustom) AtAll() RobotOption {
 	return func(msg *robotMsg) {
+		if msg.MsgType != msgTypeText && msg.MsgType != msgTypeMarkdown {
+			return
+		}
 		if msg.At == nil {
 			msg.At = &robotAt{}
 		}
@@ -250,6 +259,9 @@ func (r *RobotCustom) AtAll() RobotOption {
 // [NOTICE] 仅针对Text/Markdown类型有效
 func (r *RobotCustom) AtMobiles(m ...string) RobotOption {
 	return func(msg *robotMsg) {
+		if msg.MsgType != msgTypeText && msg.MsgType != msgTypeMarkdown {
+			return
+		}
 		if msg.At == nil {
 			msg.At = &robotAt{}
 		}
@@ -261,6 +273,9 @@ func (r *RobotCustom) AtMobiles(m ...string) RobotOption {
 // 仅针对ActionCard类型
 func (r *RobotCustom) HideAvatar(v string) RobotOption {
 	return func(msg *robotMsg) {
+		if msg.MsgType != msgTypeActionCard {
+			return
+		}
 		msg.ActionCard.HideAvatar = v
 	}
 }
@@ -269,6 +284,9 @@ func (r *RobotCustom) HideAvatar(v string) RobotOption {
 // 仅针对ActionCard类型
 func (r *RobotCustom) BtnOrientation(v string) RobotOption {
 	return func(msg *robotMsg) {
+		if msg.MsgType != msgTypeActionCard {
+			return
+		}
 		msg.ActionCard.BtnOrientation = v
 	}
 }
@@ -277,6 +295,9 @@ func (r *RobotCustom) BtnOrientation(v string) RobotOption {
 // 仅针对ActionCard类型
 func (r *RobotCustom) SingleCard(title, url string) RobotOption {
 	return func(msg *robotMsg) {
+		if msg.MsgType != msgTypeActionCard {
+			return
+		}
 		msg.ActionCard.SingleTitle = title
 		msg.ActionCard.SingleURL = url
 	}
@@ -286,6 +307,9 @@ func (r *RobotCustom) SingleCard(title, url string) RobotOption {
 // 仅针对ActionCard类型
 func (r *RobotCustom) MultiCard(title, url string) RobotOption {
 	return func(msg *robotMsg) {
+		if msg.MsgType != msgTypeActionCard {
+			return
+		}
 		msg.ActionCard.Btns = append(msg.ActionCard.Btns, robotActionCardBtn{
 			Title:     title,
 			ActionURL: url,
@@ -297,6 +321,9 @@ func (r *RobotCustom) MultiCard(title, url string) RobotOption {
 // 仅针对FeedCard类型
 func (r *RobotCustom) FeedCard(title, msgURL, picURL string) RobotOption {
 	return func(msg *robotMsg) {
+		if msg.MsgType != msgTypeFeedCard {
+			return
+		}
 		msg.FeedCard.Links = append(msg.FeedCard.Links, robotFeedCardLink{
 			Title:      title,
 			MessageURL: msgURL,

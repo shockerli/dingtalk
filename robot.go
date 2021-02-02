@@ -73,7 +73,7 @@ func (rc *RobotCustom) SendLink(title, text, msgURL, picURL string, opts ...Robo
 }
 
 // SendMarkdown 发送Markdown消息
-// 使用示例:
+// 示例:
 // 	robot.SendMarkdown("TEST: Markdown", markdown)
 // 	robot.SendMarkdown("TEST: Markdown&AtAll", markdown, robot.AtAll())
 // 	robot.SendMarkdown("TEST: Markdown&AtMobiles", markdown, robot.AtMobiles("19900001111"))
@@ -111,6 +111,11 @@ func (rc *RobotCustom) SendActionCard(title, text string, opts ...RobotOption) e
 }
 
 // SendFeedCard 发送FeedCard消息
+// 示例:
+//	robot.SendFeedCard(
+//		robot.FeedCard("3月15日起，Chromium 不能再调用谷歌 API", "https://bodhi.fedoraproject.org/updates/FEDORA-2021-48866282e5%29", "https://www.wangbase.com/blogimg/asset/202101/bg2021012506.jpg"),
+//		robot.FeedCard("考古学家在英国发现两枚11世纪北宋时期的中国硬币", "https://www.caitlingreen.org/2020/12/another-medieval-chinese-coin-from-england.html", "https://www.wangbase.com/blogimg/asset/202101/bg2021012208.jpg"),
+//	)
 func (rc *RobotCustom) SendFeedCard(opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeFeedCard,
@@ -260,7 +265,7 @@ type robotFeedCardLink struct {
 type RobotOption func(*robotMsg)
 
 // AtAll 设置是否@所有人
-// [NOTICE] 仅针对Text/Markdown类型有效
+// 适用Text/Markdown类型
 // 示例:
 // 	robot.SendMarkdown("TEST: Markdown&AtAll", markdown, robot.AtAll())
 func (rc *RobotCustom) AtAll() RobotOption {
@@ -276,7 +281,7 @@ func (rc *RobotCustom) AtAll() RobotOption {
 }
 
 // AtMobiles 设置@人的手机号
-// [NOTICE] 仅针对Text/Markdown类型有效
+// 适用Text/Markdown类型
 // 示例:
 // 	robot.SendMarkdown("TEST: Markdown&AtMobiles", markdown, robot.AtMobiles("19900001111"))
 func (rc *RobotCustom) AtMobiles(m ...string) RobotOption {
@@ -292,7 +297,7 @@ func (rc *RobotCustom) AtMobiles(m ...string) RobotOption {
 }
 
 // HideAvatar 隐藏头像(0-显示, 1-隐藏, 默认0)
-// 仅针对ActionCard类型
+// 适用ActionCard类型
 // 示例:
 //	robot.SendActionCard(
 //		"TEST: ActionCard&HideAvatar",
@@ -310,7 +315,7 @@ func (rc *RobotCustom) HideAvatar(v string) RobotOption {
 }
 
 // BtnOrientation 按钮排列(0-竖直排列, 1-横向排列, 默认1)
-// 仅针对ActionCard类型
+// 适用ActionCard类型
 // 示例:
 // 	robot.SendActionCard(
 //		"TEST: ActionCard&BtnOrientation",
@@ -329,7 +334,7 @@ func (rc *RobotCustom) BtnOrientation(v string) RobotOption {
 }
 
 // SingleCard 整体跳转配置
-// 仅针对ActionCard类型
+// 适用ActionCard类型
 // 示例:
 // 	robot.SendActionCard(
 //		"TEST: ActionCard&SingleCard",
@@ -347,7 +352,7 @@ func (rc *RobotCustom) SingleCard(title, url string) RobotOption {
 }
 
 // MultiCard 添加一个MultiCard项
-// 仅针对ActionCard类型
+// 适用ActionCard类型
 // 示例:¬
 // 	robot.SendActionCard(
 //		"TEST: ActionCard&MultiCard",
@@ -368,7 +373,12 @@ func (rc *RobotCustom) MultiCard(title, url string) RobotOption {
 }
 
 // FeedCard 添加一个FeedCard项
-// 仅针对FeedCard类型
+// 适用FeedCard类型
+// 示例:
+//	robot.SendFeedCard(
+//		robot.FeedCard("3月15日起，Chromium 不能再调用谷歌 API", "https://bodhi.fedoraproject.org/updates/FEDORA-2021-48866282e5%29", "https://www.wangbase.com/blogimg/asset/202101/bg2021012506.jpg"),
+//		robot.FeedCard("考古学家在英国发现两枚11世纪北宋时期的中国硬币", "https://www.caitlingreen.org/2020/12/another-medieval-chinese-coin-from-england.html", "https://www.wangbase.com/blogimg/asset/202101/bg2021012208.jpg"),
+//	)
 func (rc *RobotCustom) FeedCard(title, msgURL, picURL string) RobotOption {
 	return func(msg *robotMsg) {
 		if msg.MsgType != msgTypeFeedCard {

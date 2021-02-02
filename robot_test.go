@@ -113,6 +113,15 @@ func TestRobotCustom_SendActionCard(t *testing.T) {
 	}
 }
 
+func TestRobotCustom_SendFeedCard(t *testing.T) {
+	if err := robot.SendFeedCard(
+		robot.FeedCard("3月15日起，Chromium 不能再调用谷歌 API", "https://bodhi.fedoraproject.org/updates/FEDORA-2021-48866282e5%29", "https://www.wangbase.com/blogimg/asset/202101/bg2021012506.jpg"),
+		robot.FeedCard("考古学家在英国发现两枚11世纪北宋时期的中国硬币", "https://www.caitlingreen.org/2020/12/another-medieval-chinese-coin-from-england.html", "https://www.wangbase.com/blogimg/asset/202101/bg2021012208.jpg"),
+	); err != nil {
+		t.Errorf("SendFeedCard() error = %v", err)
+	}
+}
+
 func TestRobotCustom_Outgoing(t *testing.T) {
 	// replace with the available callback body
 	var callbackBody = `{"conversationId":"ciddz7nmHDaX/7Niz+Gb5VVrw==","sceneGroupCode":"project","atUsers":[{"dingtalkId":"$:LWCP_v1:$0sIVIuw1HvQQ5gRAtFWzypo0+T1TgPOP"},{"dingtalkId":"$:LWCP_v1:$I3cyfTzrws4nCbY289cXbKCVcdd1wize"}],"chatbotUserId":"$:LWCP_v1:$I3cyfTzrws4nCbY289cXbKCVcdd1wize","msgId":"msgaKcioIqERkELm2T8TlE9CA==","senderNick":"Jioby","isAdmin":false,"sessionWebhookExpiredTime":1612178396066,"createAt":1612172996026,"conversationType":"2","senderId":"$:LWCP_v1:$deZJcSfMzexC2YK+oLkk1g==","conversationTitle":"xxx","isInAtList":true,"sessionWebhook":"https://oapi.dingtalk.com/robot/sendBySession?session=eb18e18e8669b0a3cd7dff1388fe5e6a","text":{"content":"  哈哈哈"},"msgtype":"text"}`

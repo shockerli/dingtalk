@@ -13,7 +13,8 @@ import (
 )
 
 // RobotCustom 群机器人-自定义
-// @doc https://developers.dingtalk.com/document/app/custom-robot-access
+//
+// 官方文档: https://developers.dingtalk.com/document/app/custom-robot-access
 type RobotCustom struct {
 	webhook string // 例: https://oapi.dingtalk.com/robot/send?access_token=xxx
 	secret  string // (可选)例: SEC8a9fc6f36f447d7c497f8c8e08accde4c49b4b5a366fa3903f47e250d6746979
@@ -37,6 +38,7 @@ func (rc *RobotCustom) SetSecret(s string) *RobotCustom {
 }
 
 // SendText 发送Text消息
+//
 // 示例:
 // 	robot.SendText("TEST: Text")
 // 	robot.SendText("TEST: Text&AtAll", robot.AtAll())
@@ -51,6 +53,7 @@ func (rc *RobotCustom) SendText(content string, opts ...RobotOption) error {
 }
 
 // SendLink 发送Link消息
+//
 // 示例:
 // 	robot.SendLink(
 //		"TEST: Link",
@@ -73,6 +76,7 @@ func (rc *RobotCustom) SendLink(title, text, msgURL, picURL string, opts ...Robo
 }
 
 // SendMarkdown 发送Markdown消息
+//
 // 示例:
 // 	robot.SendMarkdown("TEST: Markdown", markdown)
 // 	robot.SendMarkdown("TEST: Markdown&AtAll", markdown, robot.AtAll())
@@ -90,6 +94,7 @@ func (rc *RobotCustom) SendMarkdown(title, text string, opts ...RobotOption) err
 }
 
 // SendActionCard 发送ActionCard消息
+//
 // 示例:
 // 	robot.SendActionCard(
 //		"TEST: ActionCard&SingleCard",
@@ -111,6 +116,7 @@ func (rc *RobotCustom) SendActionCard(title, text string, opts ...RobotOption) e
 }
 
 // SendFeedCard 发送FeedCard消息
+//
 // 示例:
 //	robot.SendFeedCard(
 //		robot.FeedCard("3月15日起，Chromium 不能再调用谷歌 API", "https://bodhi.fedoraproject.org/updates/FEDORA-2021-48866282e5%29", "https://www.wangbase.com/blogimg/asset/202101/bg2021012506.jpg"),
@@ -261,11 +267,12 @@ type robotFeedCardLink struct {
 }
 
 // RobotOption 群机器人-消息配置项
-// 用于修改msg配置项
 type RobotOption func(*robotMsg)
 
 // AtAll 设置是否@所有人
+//
 // 适用Text/Markdown类型
+//
 // 示例:
 // 	robot.SendMarkdown("TEST: Markdown&AtAll", markdown, robot.AtAll())
 func (rc *RobotCustom) AtAll() RobotOption {
@@ -281,7 +288,9 @@ func (rc *RobotCustom) AtAll() RobotOption {
 }
 
 // AtMobiles 设置@人的手机号
+//
 // 适用Text/Markdown类型
+//
 // 示例:
 // 	robot.SendMarkdown("TEST: Markdown&AtMobiles", markdown, robot.AtMobiles("19900001111"))
 func (rc *RobotCustom) AtMobiles(m ...string) RobotOption {
@@ -297,7 +306,9 @@ func (rc *RobotCustom) AtMobiles(m ...string) RobotOption {
 }
 
 // HideAvatar 隐藏头像(0-显示, 1-隐藏, 默认0)
+//
 // 适用ActionCard类型
+//
 // 示例:
 //	robot.SendActionCard(
 //		"TEST: ActionCard&HideAvatar",
@@ -315,7 +326,9 @@ func (rc *RobotCustom) HideAvatar(v string) RobotOption {
 }
 
 // BtnOrientation 按钮排列(0-竖直排列, 1-横向排列, 默认1)
+//
 // 适用ActionCard类型
+//
 // 示例:
 // 	robot.SendActionCard(
 //		"TEST: ActionCard&BtnOrientation",
@@ -334,7 +347,9 @@ func (rc *RobotCustom) BtnOrientation(v string) RobotOption {
 }
 
 // SingleCard 整体跳转配置
+//
 // 适用ActionCard类型
+//
 // 示例:
 // 	robot.SendActionCard(
 //		"TEST: ActionCard&SingleCard",
@@ -352,8 +367,10 @@ func (rc *RobotCustom) SingleCard(title, url string) RobotOption {
 }
 
 // MultiCard 添加一个MultiCard项
+//
 // 适用ActionCard类型
-// 示例:¬
+//
+// 示例:
 // 	robot.SendActionCard(
 //		"TEST: ActionCard&MultiCard",
 //		"MultiCard content",
@@ -373,7 +390,9 @@ func (rc *RobotCustom) MultiCard(title, url string) RobotOption {
 }
 
 // FeedCard 添加一个FeedCard项
+//
 // 适用FeedCard类型
+//
 // 示例:
 //	robot.SendFeedCard(
 //		robot.FeedCard("3月15日起，Chromium 不能再调用谷歌 API", "https://bodhi.fedoraproject.org/updates/FEDORA-2021-48866282e5%29", "https://www.wangbase.com/blogimg/asset/202101/bg2021012506.jpg"),
@@ -393,6 +412,7 @@ func (rc *RobotCustom) FeedCard(title, msgURL, picURL string) RobotOption {
 }
 
 // WithOutgoing 通过Outgoing的临时消息接口发送
+//
 // 示例:
 // 	og, err := robot.ParseOutgoing(bytes.NewBufferString(callbackBody))
 //	err = robot.SendText("callback", robot.WithOutgoing(og))
@@ -403,6 +423,7 @@ func (rc *RobotCustom) WithOutgoing(og RobotOutgoing) RobotOption {
 }
 
 // ParseOutgoing 解析Outgoing消息体
+//
 // 示例:
 // 	robot.ParseOutgoing(callbackBody)
 func (rc *RobotCustom) ParseOutgoing(r io.Reader) (og RobotOutgoing, err error) {
@@ -415,33 +436,37 @@ func (rc *RobotCustom) ParseOutgoing(r io.Reader) (og RobotOutgoing, err error) 
 }
 
 // RobotOutgoing Outgoing回调消息体
-// {
-//    "conversationId": "ciddz7nmHDaX/7Niz+Gb5VVrw==",
-//    "sceneGroupCode": "project",
-//    "atUsers": [
-//        {
-//            "dingtalkId": "$:LWCP_v1:$0sIVIuw1HvQQ5gRAtFWzypo0+T1TgPOP"
-//        },
-//        {
-//            "dingtalkId": "$:LWCP_v1:$I3cyfTzrws4nCbY289cXbKCVcdd1wize"
-//        }
-//    ],
-//    "chatbotUserId": "$:LWCP_v1:$I3cyfTzrws4nCbY289cXbKCVcdd1wize",
-//    "msgId": "msgaKcioIqERkELm2T8TlE9CA==",
-//    "senderNick": "Jioby",
-//    "isAdmin": false,
-//    "sessionWebhookExpiredTime": 1612178396066,
-//    "createAt": 1612172996026,
-//    "conversationType": "2",
-//    "senderId": "$:LWCP_v1:$deZJcSfMzexC2YK+oLkk1g==",
-//    "conversationTitle": "xxx",
-//    "isInAtList": true,
-//    "sessionWebhook": "https://oapi.dingtalk.com/robot/sendBySession?session=eb18e18e8669b0a3cd7dff1388fe5e6a",
-//    "text": {
-//        "content": "  哈哈哈"
-//    },
+//
+// 示例:
 //    "msgtype": "text"
 // }
+//	{
+//    	"conversationId": "ciddz7nmHDaX/7Niz+Gb5VVrw==",
+//    	"sceneGroupCode": "project",
+//    	"atUsers": [
+//        	{
+//            	"dingtalkId": "$:LWCP_v1:$0sIVIuw1HvQQ5gRAtFWzypo0+T1TgPOP"
+//        	},
+//        	{
+//            	"dingtalkId": "$:LWCP_v1:$I3cyfTzrws4nCbY289cXbKCVcdd1wize"
+//        	}
+//    	],
+//    	"chatbotUserId": "$:LWCP_v1:$I3cyfTzrws4nCbY289cXbKCVcdd1wize",
+//    	"msgId": "msgaKcioIqERkELm2T8TlE9CA==",
+//    	"senderNick": "Jioby",
+//    	"isAdmin": false,
+//    	"sessionWebhookExpiredTime": 1612178396066,
+//    	"createAt": 1612172996026,
+//    	"conversationType": "2",
+//    	"senderId": "$:LWCP_v1:$deZJcSfMzexC2YK+oLkk1g==",
+//    	"conversationTitle": "xxx",
+//    	"isInAtList": true,
+//    	"sessionWebhook": "https://oapi.dingtalk.com/robot/sendBySession?session=eb18e18e8669b0a3cd7dff1388fe5e6a",
+//    	"text": {
+//        	"content": "  哈哈哈"
+//    	},
+//		"msgtype": "text"
+// 	}
 type RobotOutgoing struct {
 	// 被@人的信息
 	AtUsers []struct {

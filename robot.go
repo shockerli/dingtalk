@@ -16,7 +16,7 @@ import (
 // @doc https://developers.dingtalk.com/document/app/custom-robot-access
 type RobotCustom struct {
 	webhook string // 例: https://oapi.dingtalk.com/robot/send?access_token=xxx
-	secret  string // 例: SEC8a9fc6f36f447d7c497f8c8e08accde4c49b4b5a366fa3903f47e250d6746979
+	secret  string // (可选)例: SEC8a9fc6f36f447d7c497f8c8e08accde4c49b4b5a366fa3903f47e250d6746979
 }
 
 // NewRobotCustom 实例化
@@ -37,18 +37,27 @@ func (rc *RobotCustom) SetSecret(s string) *RobotCustom {
 }
 
 // SendText 发送Text消息
+// 示例:
+// 	robot.SendText("TEST: Text")
+// 	robot.SendText("TEST: Text&AtAll", robot.AtAll())
+// 	robot.SendText("TEST: Text&AtMobiles", robot.AtMobiles("19900001111"))
 func (rc *RobotCustom) SendText(content string, opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeText,
 		Text:    &robotText{Content: content},
 	}
-	for _, opt := range opts {
-		opt(msg)
-	}
-	return rc.send(msg)
+
+	return rc.send(msg, opts...)
 }
 
 // SendLink 发送Link消息
+// 示例:
+// 	robot.SendLink(
+//		"TEST: Link",
+//		"link content",
+//		"https://github.com/shockerli",
+//		"https://www.wangbase.com/blogimg/asset/202101/bg2021011601.jpg",
+//	)
 func (rc *RobotCustom) SendLink(title, text, msgURL, picURL string, opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeLink,
@@ -59,13 +68,15 @@ func (rc *RobotCustom) SendLink(title, text, msgURL, picURL string, opts ...Robo
 			PicURL:     picURL,
 		},
 	}
-	for _, opt := range opts {
-		opt(msg)
-	}
-	return rc.send(msg)
+
+	return rc.send(msg, opts...)
 }
 
 // SendMarkdown 发送Markdown消息
+// 使用示例:
+// 	robot.SendMarkdown("TEST: Markdown", markdown)
+// 	robot.SendMarkdown("TEST: Markdown&AtAll", markdown, robot.AtAll())
+// 	robot.SendMarkdown("TEST: Markdown&AtMobiles", markdown, robot.AtMobiles("19900001111"))
 func (rc *RobotCustom) SendMarkdown(title, text string, opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeMarkdown,
@@ -74,13 +85,17 @@ func (rc *RobotCustom) SendMarkdown(title, text string, opts ...RobotOption) err
 			Text:  text,
 		},
 	}
-	for _, opt := range opts {
-		opt(msg)
-	}
-	return rc.send(msg)
+
+	return rc.send(msg, opts...)
 }
 
 // SendActionCard 发送ActionCard消息
+// 示例:
+// 	robot.SendActionCard(
+//		"TEST: ActionCard&SingleCard",
+//		"SingleCard content",
+//		robot.SingleCard("阅读全文", "https://github.com/shockerli"),
+//	)
 func (rc *RobotCustom) SendActionCard(title, text string, opts ...RobotOption) error {
 	msg := &robotMsg{
 		MsgType: msgTypeActionCard,
@@ -91,10 +106,8 @@ func (rc *RobotCustom) SendActionCard(title, text string, opts ...RobotOption) e
 			BtnOrientation: "1", // 默认横向排列
 		},
 	}
-	for _, opt := range opts {
-		opt(msg)
-	}
-	return rc.send(msg)
+
+	return rc.send(msg, opts...)
 }
 
 // SendFeedCard 发送FeedCard消息
@@ -105,14 +118,17 @@ func (rc *RobotCustom) SendFeedCard(opts ...RobotOption) error {
 			Links: []robotFeedCardLink{},
 		},
 	}
-	for _, opt := range opts {
-		opt(msg)
-	}
-	return rc.send(msg)
+
+	return rc.send(msg, opts...)
 }
 
 // 发送消息
-func (rc *RobotCustom) send(msg *robotMsg) error {
+func (rc *RobotCustom) send(msg *robotMsg, opts ...RobotOption) error {
+	// options
+	for _, opt := range opts {
+		opt(msg)
+	}
+
 	v, err := json.Marshal(msg)
 	if err != nil {
 		return err
@@ -120,15 +136,19 @@ func (rc *RobotCustom) send(msg *robotMsg) error {
 
 	var api = rc.webhook
 	var value = make(url.Values)
+	var now = time.Now().UnixNano() / 1e6 // 毫秒
 	if msg.outgoing.SessionWebhook != "" {
+		if msg.outgoing.SessionWebhookExpiredTime < now {
+			return fmt.Errorf("SessionWebhookExpiredTime is expired")
+		}
 		api = msg.outgoing.SessionWebhook
 	} else if rc.secret != "" {
-		t := time.Now().UnixNano() / 1e6
-		value.Set("timestamp", fmt.Sprintf("%d", t))
-		value.Set("sign", rc.sign(t, rc.secret))
+		value.Set("timestamp", fmt.Sprintf("%d", now))
+		value.Set("sign", rc.sign(now, rc.secret))
 		api = rc.webhook + "&" + value.Encode()
 	}
 
+	// 请求接口
 	data, err := request(api, v)
 	if err != nil {
 		return err
@@ -236,10 +256,13 @@ type robotFeedCardLink struct {
 }
 
 // RobotOption 群机器人-消息配置项
+// 用于修改msg配置项
 type RobotOption func(*robotMsg)
 
 // AtAll 设置是否@所有人
 // [NOTICE] 仅针对Text/Markdown类型有效
+// 示例:
+// 	robot.SendMarkdown("TEST: Markdown&AtAll", markdown, robot.AtAll())
 func (rc *RobotCustom) AtAll() RobotOption {
 	return func(msg *robotMsg) {
 		if msg.MsgType != msgTypeText && msg.MsgType != msgTypeMarkdown {
@@ -254,6 +277,8 @@ func (rc *RobotCustom) AtAll() RobotOption {
 
 // AtMobiles 设置@人的手机号
 // [NOTICE] 仅针对Text/Markdown类型有效
+// 示例:
+// 	robot.SendMarkdown("TEST: Markdown&AtMobiles", markdown, robot.AtMobiles("19900001111"))
 func (rc *RobotCustom) AtMobiles(m ...string) RobotOption {
 	return func(msg *robotMsg) {
 		if msg.MsgType != msgTypeText && msg.MsgType != msgTypeMarkdown {
@@ -266,8 +291,15 @@ func (rc *RobotCustom) AtMobiles(m ...string) RobotOption {
 	}
 }
 
-// HideAvatar 隐藏缩略图
+// HideAvatar 隐藏头像(0-显示, 1-隐藏, 默认0)
 // 仅针对ActionCard类型
+// 示例:
+//	robot.SendActionCard(
+//		"TEST: ActionCard&HideAvatar",
+//		"24565\n\n![xxx](https://www.wangbase.com/blogimg/asset/202101/bg2021011601.jpg)\n\nSingleCard content with image",
+//		robot.SingleCard("阅读全文", "https://github.com/shockerli"),
+//		robot.HideAvatar("1"),
+// 	)
 func (rc *RobotCustom) HideAvatar(v string) RobotOption {
 	return func(msg *robotMsg) {
 		if msg.MsgType != msgTypeActionCard {
@@ -277,8 +309,16 @@ func (rc *RobotCustom) HideAvatar(v string) RobotOption {
 	}
 }
 
-// BtnOrientation 按钮排列(0: 竖直排列, 1: 横向排列)
+// BtnOrientation 按钮排列(0-竖直排列, 1-横向排列, 默认1)
 // 仅针对ActionCard类型
+// 示例:
+// 	robot.SendActionCard(
+//		"TEST: ActionCard&BtnOrientation",
+//		"BtnOrientation content",
+//		robot.MultiCard("内容不错", "https://github.com/shockerli"),
+//		robot.MultiCard("不感兴趣", "https://github.com/shockerli"),
+//		robot.BtnOrientation("0"),
+//	)
 func (rc *RobotCustom) BtnOrientation(v string) RobotOption {
 	return func(msg *robotMsg) {
 		if msg.MsgType != msgTypeActionCard {
@@ -288,8 +328,14 @@ func (rc *RobotCustom) BtnOrientation(v string) RobotOption {
 	}
 }
 
-// SingleCard 整体调整配置
+// SingleCard 整体跳转配置
 // 仅针对ActionCard类型
+// 示例:
+// 	robot.SendActionCard(
+//		"TEST: ActionCard&SingleCard",
+//		"SingleCard content",
+//		robot.SingleCard("阅读全文", "https://github.com/shockerli"),
+//	)
 func (rc *RobotCustom) SingleCard(title, url string) RobotOption {
 	return func(msg *robotMsg) {
 		if msg.MsgType != msgTypeActionCard {
@@ -302,6 +348,13 @@ func (rc *RobotCustom) SingleCard(title, url string) RobotOption {
 
 // MultiCard 添加一个MultiCard项
 // 仅针对ActionCard类型
+// 示例:¬
+// 	robot.SendActionCard(
+//		"TEST: ActionCard&MultiCard",
+//		"MultiCard content",
+//		robot.MultiCard("内容不错", "https://github.com/shockerli"),
+//		robot.MultiCard("不感兴趣", "https://github.com/shockerli"),
+//	)
 func (rc *RobotCustom) MultiCard(title, url string) RobotOption {
 	return func(msg *robotMsg) {
 		if msg.MsgType != msgTypeActionCard {
@@ -330,6 +383,9 @@ func (rc *RobotCustom) FeedCard(title, msgURL, picURL string) RobotOption {
 }
 
 // WithOutgoing 通过Outgoing的临时消息接口发送
+// 示例:
+// 	og, err := robot.ParseOutgoing(bytes.NewBufferString(callbackBody))
+//	err = robot.SendText("callback", robot.WithOutgoing(og))
 func (rc *RobotCustom) WithOutgoing(og RobotOutgoing) RobotOption {
 	return func(msg *robotMsg) {
 		msg.outgoing = og
@@ -337,6 +393,8 @@ func (rc *RobotCustom) WithOutgoing(og RobotOutgoing) RobotOption {
 }
 
 // ParseOutgoing 解析Outgoing消息体
+// 示例:
+// 	robot.ParseOutgoing(callbackBody)
 func (rc *RobotCustom) ParseOutgoing(r io.Reader) (og RobotOutgoing, err error) {
 	buf, err := ioutil.ReadAll(r)
 	if err != nil {

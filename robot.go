@@ -183,7 +183,7 @@ func (rc *RobotCustom) send(msg *robotMsg, opts ...RobotOption) error {
 // 签名算法
 func (*RobotCustom) sign(ts int64, secret string) string {
 	h := hmac.New(sha256.New, []byte(secret))
-	h.Write([]byte(fmt.Sprintf("%d\n%s", ts, secret)))
+	_, _ = h.Write([]byte(fmt.Sprintf("%d\n%s", ts, secret)))
 	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }
 
